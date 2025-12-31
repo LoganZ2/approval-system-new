@@ -6,7 +6,6 @@ WORKDIR /app
 
 # 复制 package 文件
 COPY package*.json ./
-COPY pnpm-lock.yaml ./
 
 # 安装依赖（根据你的包管理器选择）
 RUN npm ci --only=production
