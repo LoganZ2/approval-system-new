@@ -1,0 +1,22 @@
+<!--pages/approval/index.wxml-->
+<view class="container">
+  <view class="header">
+    <text class="title">我的审批</text>
+    <button class="create-btn" bindtap="createApproval">新建审批</button>
+  </view>
+  
+  <view class="approval-list">
+    <view class="approval-item" wx:for="{{approvals}}" wx:key="id" bindtap="viewApprovalDetail" data-id="{{item.id}}">
+      <view class="item-header">
+        <text class="item-title">{{item.title}}</text>
+        <text class="item-status {{item.status}}">
+          {{item.status === 'pending' ? '待审批' : item.status === 'approved' ? '已通过' : '已拒绝'}}
+        </text>
+      </view>
+      <view class="item-info">
+        <text class="item-applicant">申请人: {{item.applicant}}</text>
+        <text class="item-date">{{item.date}}</text>
+      </view>
+    </view>
+  </view>
+</view>

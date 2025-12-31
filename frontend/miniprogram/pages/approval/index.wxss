@@ -1,0 +1,77 @@
+/* pages/approval/index.wxss */
+.container {
+  padding: 20rpx;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+.create-btn {
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 8rpx;
+  padding: 10rpx 20rpx;
+  font-size: 28rpx;
+}
+
+.approval-list {
+  margin-top: 20rpx;
+}
+
+.approval-item {
+  background: white;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  border-radius: 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.1);
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.item-title {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.item-status {
+  padding: 8rpx 16rpx;
+  border-radius: 6rpx;
+  font-size: 24rpx;
+}
+
+.item-status.pending {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.item-status.approved {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.item-status.rejected {
+  background: #fff2f0;
+  color: #ff4d4f;
+}
+
+.item-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 28rpx;
+  color: #666;
+}
