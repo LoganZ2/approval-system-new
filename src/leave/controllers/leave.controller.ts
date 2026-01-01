@@ -54,16 +54,16 @@ export class LeaveController {
         touser: openid,
         data: {
           phrase2: {
-            DATA: "phr2"
+            value: "phr2"
           },
           date3: {
-            DATA: "dt3"
+            value: "dt3"
           },
           date4: {
-            DATA: "dt4"
+            value: "dt4"
           },
           phrase5: {
-            DATA: "phr2"
+            value: "phr2"
           },
         },
         miniprogram_state: "developer",
