@@ -47,9 +47,39 @@ export class LeaveController {
           secret: process.env.secret,
         }
       })
-    } catch(e) {
+    } catch(error) {
       console.log("token")
-      console.log(e.message)
+        // error 是 AxiosError 实例
+  console.log('错误类型:', error.constructor.name); // AxiosError
+  
+  // 检查是否为 Axios 错误
+  if (axios.isAxiosError(error)) {
+    console.log('这是一个 Axios 错误');
+    
+    // 错误类型判断
+    if (error.response) {
+      // 服务器返回了错误状态码 (4xx, 5xx)
+      console.log('状态码:', error.response.status);
+      console.log('响应数据:', error.response.data);
+      console.log('响应头:', error.response.headers);
+      
+    } else if (error.request) {
+      // 请求已发送但没有收到响应
+      console.log('请求已发送但无响应');
+      console.log('请求对象:', error.request);
+      
+    } else {
+      // 请求配置出错
+      console.log('请求配置错误:', error.message);
+    }
+    
+    // 错误代码
+    console.log('错误代码:', error.code); // 如: 'ECONNABORTED', 'ERR_NETWORK'
+    console.log('错误信息:', error.message);
+  } else {
+    // 非 Axios 错误
+    console.log('非 Axios 错误:', error);
+  }
     }
 
     try {
@@ -80,8 +110,38 @@ export class LeaveController {
         })
         return sendRes.data;
       }
-    } catch(e) {
-      console.log(e.message)
+    } catch(error) {
+        // error 是 AxiosError 实例
+  console.log('错误类型:', error.constructor.name); // AxiosError
+  
+  // 检查是否为 Axios 错误
+  if (axios.isAxiosError(error)) {
+    console.log('这是一个 Axios 错误');
+    
+    // 错误类型判断
+    if (error.response) {
+      // 服务器返回了错误状态码 (4xx, 5xx)
+      console.log('状态码:', error.response.status);
+      console.log('响应数据:', error.response.data);
+      console.log('响应头:', error.response.headers);
+      
+    } else if (error.request) {
+      // 请求已发送但没有收到响应
+      console.log('请求已发送但无响应');
+      console.log('请求对象:', error.request);
+      
+    } else {
+      // 请求配置出错
+      console.log('请求配置错误:', error.message);
+    }
+    
+    // 错误代码
+    console.log('错误代码:', error.code); // 如: 'ECONNABORTED', 'ERR_NETWORK'
+    console.log('错误信息:', error.message);
+  } else {
+    // 非 Axios 错误
+    console.log('非 Axios 错误:', error);
+  }
     }
 
     return result.data
