@@ -38,40 +38,52 @@ export class LeaveController {
 
   @Get("/test-send")
   async testSend(@Headers('x-wx-openid') openid: String) {
-    const result = await axiosWx.get("/cgi-bin/token", {
-      params: {
-        grant_type: "client_credential",
-        appid: process.env.appid,
-        secret: process.env.secret,
-      }
-    })
-    if (result.data.access_token) {
-      const sendRes = await axiosWx.post("/cgi-bin/message/subscribe/send", {
-        template_id: "v89d550adOnkXBOIHJcfCntqp5jOTWMZhEYLAhSRZJI",
-        touser: openid,
-        data: {
-          phrase2: {
-            DATA: "phr2"
-          },
-          date3: {
-            DATA: "dt3"
-          },
-          date4: {
-            DATA: "dt4"
-          },
-          phrase5: {
-            DATA: "phr2"
-          },
-        },
-        miniprogram_state: "developer",
-        lang: "zh_CN"
-      }, {
+    let result;
+    try {
+      result = await axiosWx.get("/cgi-bin/token", {
         params: {
-          access_token: result.data.access_token
+          grant_type: "client_credential",
+          appid: process.env.appid,
+          secret: process.env.secret,
         }
       })
-      return sendRes.data;
+    } catch(e) {
+      console.log("token")
+      console.log(e.message)
     }
+
+    try {
+      if (result.data.access_token) {
+        const sendRes = await axiosWx.post("/cgi-bin/message/subscribe/send", {
+          template_id: "v89d550adOnkXBOIHJcfCntqp5jOTWMZhEYLAhSRZJI",
+          touser: openid,
+          data: {
+            phrase2: {
+              DATA: "phr2"
+            },
+            date3: {
+              DATA: "dt3"
+            },
+            date4: {
+              DATA: "dt4"
+            },
+            phrase5: {
+              DATA: "phr2"
+            },
+          },
+          miniprogram_state: "developer",
+          lang: "zh_CN"
+        }, {
+          params: {
+            access_token: result.data.access_token
+          }
+        })
+        return sendRes.data;
+      }
+    } catch(e) {
+      console.log(e.message)
+    }
+
     return result.data
   }
 }
