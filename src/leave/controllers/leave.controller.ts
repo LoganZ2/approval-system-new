@@ -6,22 +6,20 @@ import {
   Param,
   Query,
   HttpCode,
-  HttpStatus
+  HttpStatus,
+  Headers
 } from '@nestjs/common';
 import { LeaveService } from '../services/leave.service';
 import { Application, PendingApproval } from '../types';
-import { post, request } from 'axios';
+import axios, { get, post, request } from 'axios';
 import * as cloud from "wx-server-sdk";
 
-
+const axiosWx = axios.create({baseURL: "https://api.weixin.qq.com"});
 
 @Controller('leave')
 export class LeaveController {
   constructor(private readonly leaveService: LeaveService) {
-    cloud.init({
-      env: 'prod-0gov9rdc5eed3c97',
-      traceUser: true
-    })
+
   }
 
   @Get("/applications")
@@ -39,8 +37,41 @@ export class LeaveController {
 
 
   @Get("/test-send")
-  async testSend() {
-    const context = cloud.getWXContext()
-    return JSON.stringify(context)
+  async testSend(@Headers('x-wx-openid') openid: String) {
+    const result = await axiosWx.get("/cgi-bin/token", {
+      params: {
+        grant_type: "client_credential",
+        appid: process.env.appid,
+        secret: process.env.secret,
+      }
+    })
+    if (result.data.access_token) {
+      const sendRes = await axiosWx.post("/cgi-bin/message/subscribe/send", {
+        template_id: "v89d550adOnkXBOIHJcfCntqp5jOTWMZhEYLAhSRZJI",
+        touser: openid,
+        data: {
+          phrase2: {
+            DATA: "phr2"
+          },
+          date3: {
+            DATA: "dt3"
+          },
+          date4: {
+            DATA: "dt4"
+          },
+          phrase5: {
+            DATA: "phr2"
+          },
+        },
+        miniprogram_state: "developer",
+        lang: "zh_CN"
+      }, {
+        params: {
+          access_token: result.data.access_token
+        }
+      })
+      return sendRes.data;
+    }
+    return result.data
   }
 }
