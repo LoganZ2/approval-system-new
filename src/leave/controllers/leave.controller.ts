@@ -7,7 +7,8 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  Headers
+  Headers,
+  Logger
 } from '@nestjs/common';
 import { LeaveService } from '../services/leave.service';
 import { Application, PendingApproval } from '../types';
@@ -35,115 +36,113 @@ export class LeaveController {
   }
 
 
+  // 建议在文件顶部引入 Logger (如果是 NestJS 标准项目)
+  // import { Logger } from '@nestjs/common'; 
 
   @Get("/test-send")
-  async testSend(@Headers('x-wx-openid') openid: String) {
-    let result;
+  async testSend(@Headers('x-wx-openid') openid: string) {
+    // 如果你在 NestJS 类中，建议实例化一个 logger，或者是直接用 console
+    // const logger = new Logger('WeChatService'); 
+
+    let accessToken = '';
+
+    // ==========================================
+    // 第一步：获取 Access Token
+    // ==========================================
     try {
-      result = await axiosWx.get("/cgi-bin/token", {
+      const tokenRes = await axiosWx.get("/cgi-bin/token", {
         params: {
           grant_type: "client_credential",
           appid: process.env.appid,
           secret: process.env.secret,
         }
-      })
-    } catch(error) {
-      console.log("token")
-        // error 是 AxiosError 实例
-  console.log('错误类型:', error.constructor.name); // AxiosError
-  
-  // 检查是否为 Axios 错误
-  if (axios.isAxiosError(error)) {
-    console.log('这是一个 Axios 错误');
-    
-    // 错误类型判断
-    if (error.response) {
-      // 服务器返回了错误状态码 (4xx, 5xx)
-      console.log('状态码:', error.response.status);
-      console.log('响应数据:', error.response.data);
-      console.log('响应头:', error.response.headers);
-      
-    } else if (error.request) {
-      // 请求已发送但没有收到响应
-      console.log('请求已发送但无响应');
-      console.log('请求对象:', error.request);
-      
-    } else {
-      // 请求配置出错
-      console.log('请求配置错误:', error.message);
-    }
-    
-    // 错误代码
-    console.log('错误代码:', error.code); // 如: 'ECONNABORTED', 'ERR_NETWORK'
-    console.log('错误信息:', error.message);
-  } else {
-    // 非 Axios 错误
-    console.log('非 Axios 错误:', error);
-  }
-    }
+      });
 
-    try {
-      if (result.data.access_token) {
-        const sendRes = await axiosWx.post("/cgi-bin/message/subscribe/send", {
-          template_id: "v89d550adOnkXBOIHJcfCntqp5jOTWMZhEYLAhSRZJI",
-          touser: openid,
-          data: {
-            phrase2: {
-              DATA: "phr2"
-            },
-            date3: {
-              DATA: "dt3"
-            },
-            date4: {
-              DATA: "dt4"
-            },
-            phrase5: {
-              DATA: "phr2"
-            },
-          },
-          miniprogram_state: "developer",
-          lang: "zh_CN"
-        }, {
-          params: {
-            access_token: result.data.access_token
-          }
-        })
-        return sendRes.data;
+      // 检查微信业务层面是否报错 (HTTP 200 但返回 errcode)
+      if (tokenRes.data && tokenRes.data.errcode && tokenRes.data.errcode !== 0) {
+        console.error(`【报错位置：获取Token接口】微信返回业务错误:`, tokenRes.data);
+        return { 
+          status: 'error', 
+          step: 'get_token', 
+          message: '微信业务报错', 
+          details: tokenRes.data 
+        };
       }
-    } catch(error) {
-        // error 是 AxiosError 实例
-  console.log('错误类型:', error.constructor.name); // AxiosError
-  
-  // 检查是否为 Axios 错误
-  if (axios.isAxiosError(error)) {
-    console.log('这是一个 Axios 错误');
-    
-    // 错误类型判断
-    if (error.response) {
-      // 服务器返回了错误状态码 (4xx, 5xx)
-      console.log('状态码:', error.response.status);
-      console.log('响应数据:', error.response.data);
-      console.log('响应头:', error.response.headers);
-      
-    } else if (error.request) {
-      // 请求已发送但没有收到响应
-      console.log('请求已发送但无响应');
-      console.log('请求对象:', error.request);
-      
-    } else {
-      // 请求配置出错
-      console.log('请求配置错误:', error.message);
-    }
-    
-    // 错误代码
-    console.log('错误代码:', error.code); // 如: 'ECONNABORTED', 'ERR_NETWORK'
-    console.log('错误信息:', error.message);
-  } else {
-    // 非 Axios 错误
-    console.log('非 Axios 错误:', error);
-  }
+
+      if (!tokenRes.data.access_token) {
+        throw new Error(`未获取到 access_token，返回数据异常: ${JSON.stringify(tokenRes.data)}`);
+      }
+
+      accessToken = tokenRes.data.access_token;
+
+    } catch (error) {
+      // 处理 Token 接口的网络/代码层面异常
+      this.logAxiosError(error, '获取AccessToken阶段'); // 调用底下的辅助解析函数
+      return { status: 'error', step: 'get_token', message: error.message };
     }
 
-    return result.data
+    // ==========================================
+    // 第二步：发送订阅消息
+    // ==========================================
+    try {
+      const sendRes = await axiosWx.post("/cgi-bin/message/subscribe/send", {
+        template_id: "v89d550adOnkXBOIHJcfCntqp5jOTWMZhEYLAhSRZJI",
+        touser: openid,
+        data: {
+          phrase2: { DATA: "phr2" },
+          date3: { DATA: "dt3" },
+          date4: { DATA: "dt4" },
+          phrase5: { DATA: "phr2" }, // 注意：这里你原本写的是 phr2，确认是否意图如此
+        },
+        miniprogram_state: "developer",
+        lang: "zh_CN"
+      }, {
+        params: {
+          access_token: accessToken
+        }
+      });
+
+      // 检查发送消息的业务错误
+      if (sendRes.data && sendRes.data.errcode && sendRes.data.errcode !== 0) {
+        console.error(`【报错位置：发送消息接口】微信返回业务错误:`, sendRes.data);
+        return { 
+          status: 'error', 
+          step: 'send_message', 
+          message: '发送失败', 
+          details: sendRes.data 
+        }; // 这里可以直接返回微信的错误给前端看
+      }
+
+      return sendRes.data;
+
+    } catch (error) {
+      // 处理 发送 接口的网络/代码层面异常
+      this.logAxiosError(error, '发送订阅消息阶段');
+      return { status: 'error', step: 'send_message', message: error.message };
+    }
+  }
+
+  /**
+   * 这是一个辅助函数，用来把看不懂的 Axios 错误变成人话
+   * 你可以把它放在这个 Controller 类里面作为一个 private 方法
+   */
+  private logAxiosError(error: any, stageName: string) {
+    console.log(`\n============== ❌ 错误发生在：[${stageName}] ==============`);
+    
+    if (error.response) {
+      // 请求已发出，服务器也回复了，但是状态码不是 2xx
+      console.error(`1. HTTP状态码: ${error.response.status}`);
+      console.error(`2. 接口返回详情:`, JSON.stringify(error.response.data, null, 2));
+      console.error(`3. 请求头/参数:`, error.config?.headers || 'N/A');
+    } else if (error.request) {
+      // 请求发出了，但是没有收到回应 (由网络问题、超时引起)
+      console.error(`错误类型: 网络请求无响应 (可能是超时或DNS解析失败)`);
+      console.error(`原生请求对象:`, error.request);
+    } else {
+      // 设置请求时发生了一些事情，触发了错误
+      console.error(`错误类型: 代码逻辑/配置错误`);
+      console.error(`错误信息: ${error.message}`);
+    }
+    console.log(`===========================================================\n`);
   }
 }
