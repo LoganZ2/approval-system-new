@@ -44,8 +44,8 @@ export class LeaveController {
     const result = await axiosWx.get("/cgi-bin/token", {
       params: {
         grant_type: "client_credential",
-        appid: "wxf856b23502197227",
-        secret: "b8f5352fea99559bff3ab4f9d9749a8c",
+        appid: process.env.appid,
+        secret: process.env.secret,
       }
     })
     if (result.data.access_token) {
