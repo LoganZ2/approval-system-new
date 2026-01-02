@@ -22,18 +22,22 @@ export enum LeaveStatus {
 }
 
 export class Application {
-	@IsNumber()
+  @IsNumber()
   id: Number;
-	@IsNumber()
-  userId: Number;
+  @IsEnum(LeaveType)
+  type: LeaveType;
+  @IsNumber()
+  duration: Number;
+  @IsEnum(LeaveStatus)
+  status: LeaveStatus;
+	@IsDate()
+  startDate: Date;
 	@IsEnum(DayHalf)
-  startDate: DayHalf;
-	@IsString()
-  startHalf: String;
+  startHalf: DayHalf;
+	@IsDate()
+  endDate: Date;
 	@IsEnum(DayHalf)
-  endDate: DayHalf;
-	@IsString()
-  endHalf: String;
+  endHalf: DayHalf;
 	@IsString()
   reason: String;
 	@IsDate()
@@ -41,6 +45,7 @@ export class Application {
 	@IsDate()
   updatedAt: Date;
 }
+
 
 export class PendingApproval {
 	@IsNumber()

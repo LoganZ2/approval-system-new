@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Application, PendingApproval } from '../types';
+import { Application, DayHalf, PendingApproval } from '../types';
 import { query } from 'src/database';
 
 @Injectable()
@@ -7,20 +7,39 @@ export class LeaveService {
   constructor() {}
 
   async selectApplicationByUserId(userId: Number): Promise<Application[]> {
-      const rows = await query<Application>(
+      let rows = await query<Application>(
           `SELECT 
-              id, 
-              user_id AS userId, 
+							id,
+              type, 
+              status,
               start_date as startDate, 
               start_half as startHalf, 
               end_date as endDate, 
+              end_half as endHalf,
               reason, 
-              type, 
               created_at as createdAt, 
               updated_at as updatedAt 
           FROM application WHERE user_id=? AND is_deleted=0`,
           [userId]
       )
+      rows.forEach(value => {
+				let duration = 0;
+				if (value.endHalf === DayHalf.AM) {
+					duration += 0.5;
+				} else if (value.endHalf === DayHalf.PM) {
+					duration += 1;
+				}
+				if (value.startHalf === DayHalf.PM) {
+					duration -= 0.5;
+				}
+				const d1 = new Date(value.endDate);
+				const d2 = new Date(value.startDate)
+				d1.setHours(0, 0, 0, 0);
+  			d2.setHours(0, 0, 0, 0);
+				const diffTime = Math.abs(d1.getTime() - d2.getTime());
+				const diffDays = diffTime / (1000 * 60 * 60 * 24);
+				value.duration = duration + diffDays;
+			})
       return rows;
   }
 
