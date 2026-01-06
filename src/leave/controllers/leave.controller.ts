@@ -10,9 +10,10 @@ import {
   Headers
 } from '@nestjs/common';
 import { LeaveService } from '../services/leave.service';
-import { Application, PendingApproval } from '../types';
+import { Application, ApproveInfo, LeaveType, PendingApproval } from '../types';
 import axios, { get, post, request } from 'axios';
 import * as https from "https";
+import { IsEnum } from 'class-validator';
 
 const axiosWx = axios.create({httpsAgent: new https.Agent({
     rejectUnauthorized: false
@@ -36,10 +37,20 @@ export class LeaveController {
     return result;
   }
 
+  @Post("/apply")
+  async apply(@Headers('x-wx-openid') openid: string, @Body() application: Application) {
+    await this.leaveService.apply(openid, application);
+  }
+
+  @Post("/approve")
+  async approve(@Headers('x-wx-openid') openid: string, @Body() approveInfo: ApproveInfo) {
+    await this.leaveService.approve(openid, approveInfo);
+  }
+
 
 
   @Get("/test-send")
-  async testSend(@Headers('x-wx-openid') openid: String) {
+  async testSend(@Headers('x-wx-openid') openid: string) {
     
     const result = await axiosWx.get("/cgi-bin/token", {
       params: {
