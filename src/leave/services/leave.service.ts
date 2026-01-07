@@ -126,40 +126,59 @@ export class LeaveService {
 		let [user] = (await query<User>("SELECT * FROM user WHERE openid=?", [openid]));
 		const status = approveInfo.approved ? LeaveStatus.APPROVED : LeaveStatus.REJECTED
 		return await transaction(async (connection) => {
+
 			await connection.execute(`UPDATE approval_spec
 				SET 
 					status=?,
 					comment=?
 				WHERE id=?`, [status, approveInfo.comment, approveInfo.approvalSpecId])
 
-			if (approveInfo.approved) {
-				let approvalId = (await connection.execute(`
-					SELECT approval_id 
-						FROM approval_spec 
-						WHERE id = ?`, [approveInfo.approvalSpecId]))[0][0].approval_id;
-				let approvalType = (await connection.execute("SELECT type FROM approval WHERE id=?", [approvalId]))[0][0].type;
-				if (approvalType === ApprovalType.And) {
-					// check if other spec are approved, if all approved then UPDATE approval
-				} else if (approvalType === ApprovalType.OR) {
-					// UPDATE approval to approved
+
+			let approvalId = (await connection.execute(`
+				SELECT approval_id 
+				FROM approval_spec 
+				WHERE id = ?`, [approveInfo.approvalSpecId]
+			))[0][0].approval_id;
+
+			let approvalType = (await connection.execute("SELECT type FROM approval WHERE id=?", [approvalId]))[0][0].type;
+
+			let statusList = (await connection.query(`
+				SELECT status
+				FROM approval_spec
+				WHERE approval_id=?`, [approvalId]
+			))[0] as any[]
+
+			if (statusList.some(item => item.status === LeaveStatus.REJECTED)) {
+				await connection.execute("UPDATE approval SET status=? WHERE id=?", [LeaveStatus.REJECTED, approvalId])
+			} else if (approvalType === ApprovalType.And) {
+				if (statusList.every(item => item.status === LeaveStatus.APPROVED)) {
+					await connection.execute("UPDATE approval SET status=? WHERE id=?", [LeaveStatus.APPROVED, approvalId])
+				}
+			} else if (approvalType === ApprovalType.OR) {
+				if (statusList.some(item => item.status === LeaveStatus.APPROVED)) {
+					await connection.execute("UPDATE approval SET status=? WHERE id=?", [LeaveStatus.APPROVED, approvalId])
 				}
 			}
 
-			let specStatusList = (await connection.execute(`
-				SELECT status 
-				FROM approval_spec 
-				WHERE approval_id = (
-					SELECT approval_id 
-					FROM approval_spec 
-					WHERE id = ?
-				);`, [approveInfo.approvalSpecId]))
+			let applicationId = (await connection.execute(`
+				SELECT application_id 
+					FROM approval
+					WHERE id = ?`, [approvalId]
+			))[0][0].application_id;
 
-				
+			let approvalStatusList = (await connection.query(`
+				SELECT status
+				FROM approval
+				WHERE application_id = ?`, [applicationId]
+			))[0] as any[]
 
-			})
-
-
-
+			if (approvalStatusList.some(item => item.status === LeaveStatus.REJECTED)) {
+				await connection.execute("UPDATE application SET status=? WHERE id=?", [LeaveStatus.REJECTED, applicationId])
+			} else if (approvalStatusList.every(item => item.status === LeaveStatus.APPROVED)) {
+				await connection.execute("UPDATE application SET status=? WHERE id=?", [LeaveStatus.APPROVED, applicationId])
+			}
+			
+		})
 	}
 }
 
