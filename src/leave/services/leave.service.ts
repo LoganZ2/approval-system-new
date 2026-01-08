@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { Application, ApprovalType, ApproveInfo, DayHalf, LeaveStatus, LeaveType, Level, PendingApproval, User } from '../types';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { Application, Approval, ApprovalType, ApproveInfo, DayHalf, LeaveStatus, LeaveType, Level, PendingApproval, User } from '../types';
 import { query, transaction } from 'src/database';
 import { ResultSetHeader } from 'mysql2/promise';
 
@@ -7,7 +7,7 @@ import { ResultSetHeader } from 'mysql2/promise';
 export class LeaveService {
   constructor() {}
 
-  async selectApplicationByUserId(userId: Number): Promise<Application[]> {
+  async selectApplicationByOpenid(openid: string): Promise<Application[]> {
       let rows = await query<Application>(
           `SELECT 
 							id,
@@ -15,13 +15,17 @@ export class LeaveService {
               status,
               start_date as startDate, 
               start_half as startHalf, 
+							current_step as currentStep,
+							total_steps as totalSteps,
               end_date as endDate, 
               end_half as endHalf,
               reason, 
               created_at as createdAt, 
               updated_at as updatedAt 
-          FROM application WHERE user_id=? AND is_deleted=0`,
-          [userId]
+          FROM application WHERE user_id=(
+						SELECT id FROM user WHERE openid=?
+					) AND is_deleted=0`,
+          [openid]
       )
       rows.forEach(value => {
 				value.duration = calculateDuration(value.startDate, value.startHalf, value.endDate, value.endHalf)
@@ -29,26 +33,29 @@ export class LeaveService {
       return rows;
   }
 
-  async selectPendingApprovalByUserId(userId): Promise<PendingApproval[]> {
+  async selectPendingApprovalByOpenid(openid): Promise<PendingApproval[]> {
       const sql = `
-          SELECT 
-              aps.id AS id,
-              u.name AS applicantName,
-              app.type,
-              app.reason,
-              app.start_date AS startDate,
-              app.start_half AS startHalf,
-              app.end_date as endDate,
-              app.end_half as endHalf
-          FROM approval_spec aps
-          LEFT JOIN approval ap ON aps.approval_id = ap.id
-          LEFT JOIN application app ON ap.application_id = app.id
-          LEFT JOIN user u ON app.user_id = u.id
-          WHERE aps.approver_id = ? 
-            AND aps.status = 'pending'
+				SELECT 
+						aps.id AS id,
+						u.name AS applicantName,
+						app.type,
+						app.reason,
+						app.start_date AS startDate,
+						app.start_half AS startHalf,
+						app.end_date as endDate,
+						app.end_half as endHalf
+				FROM approval_spec aps
+				LEFT JOIN approval ap ON aps.approval_id = ap.id
+				LEFT JOIN application app ON ap.application_id = app.id
+				LEFT JOIN user u ON app.user_id = u.id
+				LEFT JOIN user approver ON aps.approver_id = approver.id
+				WHERE approver.openid = ?
+					AND app.status = 'pending'
+					AND aps.status = 'pending'
+					AND app.current_step = ap.step
+					AND app.is_deleted = 0
       `;
-
-      const rows: PendingApproval[] = await query<PendingApproval>(sql, [userId]);
+      const rows: PendingApproval[] = await query<PendingApproval>(sql, [openid]);
       return rows;
   }
 
@@ -62,8 +69,8 @@ export class LeaveService {
 
 			if (user.level === Level.Employee) {
 				let [applicationResult] = await connection.execute<ResultSetHeader>(
-					`INSERT INTO application (user_id, start_date, start_half, end_date, end_half, reason, type)
-					VALUES (?, ?, ?, ?, ?, ?, ?)`, 
+					`INSERT INTO application (user_id, start_date, start_half, end_date, end_half, reason, type, total_steps)
+					VALUES (?, ?, ?, ?, ?, ?, ?, 1)`, 
 					[user.id, application.startDate, application.startHalf, application.endDate, application.endHalf, application.reason, application.type]
 				);
 				let [approvalResult] = await connection.execute<ResultSetHeader>(
@@ -95,11 +102,12 @@ export class LeaveService {
 						`INSERT INTO approval_spec (approval_id, approver_id)
 						VALUES ?`, [ids]
 					)
+					await connection.execute("UPDATE application SET total_steps=2 WHERE id=?", [applicationResult.insertId])
 				}
 			} else if (user.level === Level.DepartmentManager) {
 				let [applicationResult] = await connection.execute<ResultSetHeader>(
-					`INSERT INTO application (user_id, start_date, start_half, end_date, end_half, reason, type)
-					VALUES (?, ?, ?, ?, ?, ?, ?)`, 
+					`INSERT INTO application (user_id, start_date, start_half, end_date, end_half, reason, type, total_steps)
+					VALUES (?, ?, ?, ?, ?, ?, ?, 1)`, 
 					[user.id, application.startDate, application.startHalf, application.endDate, application.endHalf, application.reason, application.type]
 				);
 				let [approvalResult] = await connection.execute<ResultSetHeader>(
@@ -123,8 +131,45 @@ export class LeaveService {
 
 	// TODO!!!
 	async approve(openid: string, approveInfo: ApproveInfo) {
-		let [user] = (await query<User>("SELECT * FROM user WHERE openid=?", [openid]));
 		const status = approveInfo.approved ? LeaveStatus.APPROVED : LeaveStatus.REJECTED
+		let [approval] = await query<Approval>(`
+			SELECT
+				appr.id AS id,
+				appr.application_id AS applicationId,
+				appr.step AS step,
+				appr.type AS type,
+				appr.status AS status
+			FROM approval appr
+			WHERE appr.id = (
+				SELECT approval_id 
+				FROM approval_spec appr_spec
+				WHERE appr_spec.id = ?
+			);	
+		`, [approveInfo.approvalSpecId])
+		let [application] = await query<Application>(`
+			SELECT 	
+				app.id AS id,
+				app.type AS type,
+				app.status AS status,
+				app.start_date AS startDate,
+				app.start_half AS startHalf,
+				app.end_date AS endDate,
+				app.end_half AS endHalf,
+				app.reason AS reason,
+				app.current_step AS currentStep,
+				app.total_steps AS totalSteps
+			FROM application app
+			WHERE id = ?
+		`, [approval.applicationId]);
+		if (application.status !== LeaveStatus.PENDING) {
+			throw new BadRequestException("审批已结束")
+		}
+		if (approval.step < application.currentStep) {
+			throw new BadRequestException("当前节点已结束")
+		}
+		if (approval.step > application.currentStep) {
+			throw new BadRequestException("当前节点未开始");
+		}
 		return await transaction(async (connection) => {
 
 			await connection.execute(`UPDATE approval_spec
@@ -133,51 +178,31 @@ export class LeaveService {
 					comment=?
 				WHERE id=?`, [status, approveInfo.comment, approveInfo.approvalSpecId])
 
-
-			let approvalId = (await connection.execute(`
-				SELECT approval_id 
-				FROM approval_spec 
-				WHERE id = ?`, [approveInfo.approvalSpecId]
-			))[0][0].approval_id;
-
-			let approvalType = (await connection.execute("SELECT type FROM approval WHERE id=?", [approvalId]))[0][0].type;
-
 			let statusList = (await connection.query(`
 				SELECT status
 				FROM approval_spec
-				WHERE approval_id=?`, [approvalId]
+				WHERE approval_id=?`, [approval.id]
 			))[0] as any[]
 
 			if (statusList.some(item => item.status === LeaveStatus.REJECTED)) {
-				await connection.execute("UPDATE approval SET status=? WHERE id=?", [LeaveStatus.REJECTED, approvalId])
-			} else if (approvalType === ApprovalType.And) {
+				await connection.execute("UPDATE approval SET status=? WHERE id=?", [LeaveStatus.REJECTED, approval.id])
+				await connection.execute("UPDATE application SET status=? WHERE id=?", [LeaveStatus.REJECTED, application.id])
+				return;
+			} else if (approval.type === ApprovalType.And) {
 				if (statusList.every(item => item.status === LeaveStatus.APPROVED)) {
-					await connection.execute("UPDATE approval SET status=? WHERE id=?", [LeaveStatus.APPROVED, approvalId])
+					await connection.execute("UPDATE approval SET status=? WHERE id=?", [LeaveStatus.APPROVED, approval.id])
 				}
-			} else if (approvalType === ApprovalType.OR) {
+			} else if (approval.type === ApprovalType.OR) {
 				if (statusList.some(item => item.status === LeaveStatus.APPROVED)) {
-					await connection.execute("UPDATE approval SET status=? WHERE id=?", [LeaveStatus.APPROVED, approvalId])
+					await connection.execute("UPDATE approval SET status=? WHERE id=?", [LeaveStatus.APPROVED, approval.id])
 				}
+			} else return;
+			console.log("cur: %d, tot: %d", application.currentStep, application.totalSteps)
+			if (application.currentStep === application.totalSteps) {
+				await connection.execute("UPDATE application SET status=? WHERE id=?", [LeaveStatus.APPROVED, application.id])
+			} else {
+				await connection.execute("UPDATE application SET current_step=current_step+1 WHERE id=?", [application.id])
 			}
-
-			let applicationId = (await connection.execute(`
-				SELECT application_id 
-					FROM approval
-					WHERE id = ?`, [approvalId]
-			))[0][0].application_id;
-
-			let approvalStatusList = (await connection.query(`
-				SELECT status
-				FROM approval
-				WHERE application_id = ?`, [applicationId]
-			))[0] as any[]
-
-			if (approvalStatusList.some(item => item.status === LeaveStatus.REJECTED)) {
-				await connection.execute("UPDATE application SET status=? WHERE id=?", [LeaveStatus.REJECTED, applicationId])
-			} else if (approvalStatusList.every(item => item.status === LeaveStatus.APPROVED)) {
-				await connection.execute("UPDATE application SET status=? WHERE id=?", [LeaveStatus.APPROVED, applicationId])
-			}
-			
 		})
 	}
 }

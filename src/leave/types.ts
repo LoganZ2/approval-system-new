@@ -52,6 +52,12 @@ export class Application {
   endHalf: DayHalf;
 	@IsString()
   reason: string;
+  @IsNumber()
+  @IsOptional()
+  currentStep: number;
+  @IsNumber()
+  @IsOptional()
+  totalSteps: number;
 	@IsDate()
   @Type(() => Date)
   @IsOptional()
@@ -67,9 +73,11 @@ export class Approval {
   @IsOptional()
   id: number;
   @IsNumber()
-  application_id: number;
+  applicationId: number;
   @IsNumber()
   step: number;
+  @IsEnum(ApprovalType)
+  type: ApprovalType;
   @IsEnum(LeaveStatus)
   @IsOptional()
   status: LeaveStatus;

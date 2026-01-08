@@ -33,4 +33,14 @@ export class UserController {
   async register(@Headers('x-wx-openid') openid: string, @Body() user: User) {
     await this.userService.register(openid, user);
   }
+
+  @Get("/department-list")
+  departmentList() {
+    return [
+        '出口部',
+        '有色部',
+        '物流部',
+        '综合部'
+    ]
+  }
 }

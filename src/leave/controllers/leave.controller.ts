@@ -25,14 +25,14 @@ export class LeaveController {
   }
 
   @Get("/applications")
-  async selectApplicationByUserId(@Query("userId") userId: Number): Promise<Application[]> {
-    const result = await this.leaveService.selectApplicationByUserId(userId);
+  async selectApplicationByUserId(@Headers('x-wx-openid') openid: string): Promise<Application[]> {
+    const result = await this.leaveService.selectApplicationByOpenid(openid);
     return result;
   }
 
   @Get("/pending-approvals")
-  async selectPendingApprovalByUserId(@Query("userId") userId: Number): Promise<PendingApproval[]> {
-    const result = await this.leaveService.selectPendingApprovalByUserId(userId);
+  async selectPendingApprovalByOpenid(@Headers('x-wx-openid') openid: string): Promise<PendingApproval[]> {
+    const result = await this.leaveService.selectPendingApprovalByOpenid(openid);
     return result;
   }
 
