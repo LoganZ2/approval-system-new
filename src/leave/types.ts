@@ -88,7 +88,7 @@ export class PendingApproval {
 	@IsNumber()
   id: number;
 	@IsString()
-  applicantName: String;
+  applicant: String;
 	@IsEnum(LeaveType)
   type: LeaveType;
 	@IsString()
@@ -103,6 +103,8 @@ export class PendingApproval {
   endDate: Date;
 	@IsEnum(DayHalf)
   endHalf: DayHalf;
+  @IsNumber()
+  duration: Number;
 }
 
 export class ApproveInfo {
