@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsBoolean, IsDate, IsEnum, IsNumber, IsObject, IsOptional, IsString } from "class-validator";
+import { IsArray, IsBoolean, IsDate, IsEnum, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from "class-validator";
 
 
 export enum DayHalf {
@@ -126,7 +126,7 @@ export enum Level {
 export class User {
   @IsNumber()
   @IsOptional()
-  id: number | null;
+  id?: number;
   @IsString()
   name: string;
   @IsString()
@@ -136,4 +136,90 @@ export class User {
   @IsString()
   @IsOptional()
   openid: string;
+}
+
+
+export class ApprovalSpecResponseDto {
+  @IsNumber()
+  id: number;
+
+  @IsNumber()
+  approverId: number;
+
+  @IsString()
+  approverName: string;
+
+  @IsEnum(LeaveStatus)
+  status: LeaveStatus;
+
+  @IsString()
+  @IsOptional()
+  comment?: string;
+}
+
+// Approval DTO
+export class ApprovalResponseDto {
+  @IsNumber()
+  id: number;
+
+  @IsNumber()
+  step: number;
+
+  @IsEnum(ApprovalType)
+  type: ApprovalType;
+
+  @IsEnum(LeaveStatus)
+  status: LeaveStatus;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ApprovalSpecResponseDto)
+  approvalSpecList: ApprovalSpecResponseDto[];
+}
+
+// 主 Application DTO
+export class ApplicationResponseDto {
+  @IsNumber()
+  id: number;
+
+  @IsNumber()
+  applicantId: number;
+
+  @IsString()
+  name: string;
+
+  @IsDate()
+  startDate: Date;
+
+  @IsEnum(DayHalf)
+  startHalf: DayHalf;
+
+  @IsDate()
+  endDate: Date;
+
+  @IsEnum(DayHalf)
+  endHalf: DayHalf;
+
+  @IsNumber()
+  duration: number;
+
+  @IsString()
+  reason: string;
+
+  @IsNumber()
+  currentStep: number;
+
+  @IsNumber()
+  totalSteps: number;
+
+  @IsDate()
+  createdAt: Date;
+
+  @IsDate()
+  updatedAt: Date;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ApprovalResponseDto)
+  approvalList: ApprovalResponseDto[];
 }

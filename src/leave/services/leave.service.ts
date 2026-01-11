@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Application, Approval, ApprovalType, ApproveInfo, DayHalf, LeaveStatus, LeaveType, Level, PendingApproval, User } from '../types';
+import { Application, ApplicationResponseDto, Approval, ApprovalResponseDto, ApprovalSpecResponseDto, ApprovalType, ApproveInfo, DayHalf, LeaveStatus, LeaveType, Level, PendingApproval, User } from '../types';
 import { query, transaction } from 'src/database';
 import { ResultSetHeader } from 'mysql2/promise';
 
@@ -36,14 +36,14 @@ export class LeaveService {
   async selectPendingApprovalByOpenid(openid): Promise<PendingApproval[]> {
       const sql = `
 				SELECT 
-						aps.id AS id,
-						u.name AS applicant,
-						app.type,
-						app.reason,
-						app.start_date AS startDate,
-						app.start_half AS startHalf,
-						app.end_date as endDate,
-						app.end_half as endHalf
+					aps.id AS id,
+					u.name AS applicant,
+					app.type,
+					app.reason,
+					app.start_date AS startDate,
+					app.start_half AS startHalf,
+					app.end_date as endDate,
+					app.end_half as endHalf
 				FROM approval_spec aps
 				LEFT JOIN approval ap ON aps.approval_id = ap.id
 				LEFT JOIN application app ON ap.application_id = app.id
@@ -61,6 +61,46 @@ export class LeaveService {
 			}
       return rows;
   }
+
+	async applicationDetails(id: Number) {
+		const [application] = await query<ApplicationResponseDto>(`
+			SELECT 
+				app.id AS id,
+				user.id AS applicantId,
+				user.name AS name,
+				app.start_date AS startDate,
+				app.start_half AS startHalf,
+				app.end_date AS endDate,
+				app.end_half AS endHalf,
+				app.reason AS reason,
+				app.current_step AS currentStep,
+				app.total_steps AS totalSteps,
+				app.created_at AS createdAt,
+				app.updated_at AS updatedAt
+			FROM application app
+			LEFT JOIN user ON user.id=app.user_id
+			WHERE app.id=?
+				AND app.is_deleted=0
+		`, [id]);
+		application.duration = calculateDuration(application.startDate, application.startHalf, application.endDate, application.endHalf)
+		const appId = application.id;
+		const approvalList = await query<ApprovalResponseDto>("SELECT id, step, type, status FROM approval WHERE application_id=? ORDER BY step", [appId]);
+		for (let approval of approvalList) {
+			const approvalSpecList = await query<ApprovalSpecResponseDto>(`
+				SELECT 
+					aps.id AS id,
+					user.id AS approverId,
+					user.name AS approverName,
+					aps.status AS status,
+					aps.comment AS comment
+				FROM approval_spec aps
+				LEFT JOIN user ON user.id=aps.approver_id
+				WHERE approval_id=?`, [approval.id]);
+			approval.approvalSpecList = approvalSpecList;
+		}
+		application.approvalList = approvalList;
+		return application;
+	}
 
 	async apply(openid: string, application: Application) {
 		let [user] = (await query<User>("SELECT * FROM user WHERE openid=?", [openid]));

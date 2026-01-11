@@ -17,7 +17,7 @@ export class UserService {
   }
 
   async detail(openid: string) {
-    return await query<User>("SELECT id, name, department, level, openid FROM user WHERE openid=?", [openid])
+    return (await query<User>("SELECT id, name, department, level, openid FROM user WHERE openid=?", [openid]))[0]
   }
 
   async register(openid: string, user: User) {

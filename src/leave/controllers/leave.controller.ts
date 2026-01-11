@@ -39,6 +39,11 @@ export class LeaveController {
     return result;
   }
 
+  @Get("/application-details/:id")
+  async applicationDetails(@Param("id") id: Number) {
+    return await this.leaveService.applicationDetails(id);
+  }
+
   @Post("/apply")
   async apply(@Headers('x-wx-openid') openid: string, @Body() application: Application) {
     await this.leaveService.apply(openid, application);
