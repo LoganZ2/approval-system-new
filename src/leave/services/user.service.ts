@@ -16,6 +16,10 @@ export class UserService {
       return rows.length !== 0;
   }
 
+  async detail(openid: string) {
+    return await query<User>("SELECT id, name, department, level, openid FROM user WHERE openid=?", [openid])
+  }
+
   async register(openid: string, user: User) {
     user.openid = openid;
     try {

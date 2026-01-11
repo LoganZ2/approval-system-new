@@ -27,6 +27,11 @@ export class UserController {
 
   }
 
+  @Get("/detail")
+  async detail(@Headers('x-wx-openid') openid: string) {
+    return await this.userService.detail(openid);;
+  }
+
   @Post("/register")
   async register(@Headers('x-wx-openid') openid: string, @Body() user: User) {
     await this.userService.register(openid, user);
