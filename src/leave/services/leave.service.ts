@@ -37,7 +37,7 @@ export class LeaveService {
       const sql = `
 				SELECT 
 						aps.id AS id,
-						u.name AS applicantName,
+						u.name AS applicant,
 						app.type,
 						app.reason,
 						app.start_date AS startDate,
@@ -56,6 +56,9 @@ export class LeaveService {
 					AND app.is_deleted = 0
       `;
       const rows: PendingApproval[] = await query<PendingApproval>(sql, [openid]);
+			for (const item of rows) {
+				item.duration = calculateDuration(item.startDate, item.startHalf, item.endDate, item.endHalf)
+			}
       return rows;
   }
 
