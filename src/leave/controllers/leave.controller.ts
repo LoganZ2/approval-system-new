@@ -7,18 +7,21 @@ import {
   Query,
   HttpCode,
   HttpStatus,
-  Headers
+  Headers,
+  UseGuards
 } from '@nestjs/common';
 import { LeaveService } from '../services/leave.service';
 import { Application, ApproveInfo, LeaveType, PendingApproval } from '../types';
 import axios from 'axios';
 import * as https from "https";
+import { RegisteredGuard } from 'src/common/guards/registered.guard';
 
 // const axiosWx = axios.create({httpsAgent: new https.Agent({
 //     rejectUnauthorized: false
 //   }), baseURL: "https://api.weixin.qq.com"});
 
 @Controller('leave')
+@UseGuards(RegisteredGuard)
 export class LeaveController {
   constructor(private readonly leaveService: LeaveService) {
 
