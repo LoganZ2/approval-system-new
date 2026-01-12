@@ -21,13 +21,13 @@ const axiosWx = axios.create({httpsAgent: new https.Agent({
   }), baseURL: "https://api.weixin.qq.com"});
 
 @Controller('user')
-@UseGuards(RegisteredGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {
 
   }
 
   @Get("/detail")
+  @UseGuards(RegisteredGuard)
   async detail(@Headers('x-wx-openid') openid: string) {
     return await this.userService.detail(openid);;
   }
