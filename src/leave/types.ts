@@ -87,6 +87,8 @@ export class Approval {
 export class PendingApproval {
 	@IsNumber()
   id: number;
+  @IsNumber()
+  applicationId: number;
 	@IsString()
   applicant: String;
 	@IsEnum(LeaveType)

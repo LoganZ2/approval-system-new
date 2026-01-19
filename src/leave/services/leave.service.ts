@@ -37,6 +37,7 @@ export class LeaveService {
       const sql = `
 				SELECT 
 					aps.id AS id,
+					app.id AS applicationId,
 					u.name AS applicant,
 					app.type,
 					app.reason,
