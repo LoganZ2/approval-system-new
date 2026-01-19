@@ -208,6 +208,9 @@ export class ApplicationResponseDto {
   @IsString()
   reason: string;
 
+  @IsEnum(LeaveStatus)
+  status: LeaveStatus;
+
   @IsNumber()
   currentStep: number;
 
