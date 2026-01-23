@@ -36,6 +36,9 @@ export class UserService {
           throw e;
       }
     }
+  }
 
+  async update(openid: string, user: User) {
+    await query("UPDATE user SET name=?, level=?, department=? WHERE id=?", [user.name, user.level, user.department, user.id])
   }
 }

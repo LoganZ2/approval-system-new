@@ -37,6 +37,11 @@ export class UserController {
     await this.userService.register(openid, user);
   }
 
+  @Post("/update")
+  async updateUser(@Headers('x-wx-openid') openid: string, @Body() user: User) {
+    await this.userService.update(openid, user);
+  }
+
   @Get("/department-list")
   departmentList() {
     return [
