@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   Application,
+  ApplicationListItem,
   ApplicationResponseDto,
   Approval,
   ApprovalResponseDto,
@@ -237,6 +238,51 @@ export class LeaveService {
       }
     });
   }
+
+	async applicationList(openid: string) {
+		const [user] = await query<User>("SELECT * FROM user WHERE openid=?", [openid]);
+		let rows: ApplicationListItem[] = []
+		if (user.level === Level.Manager || user.department === "人力部") {
+			rows = await query<ApplicationListItem>(`
+				SELECT
+					app.id AS id,
+					user.name AS applicant,
+					app.type AS type,
+					app.start_date AS startDate,
+					app.start_half AS startHalf,
+					app.status AS status,
+					app.end_date AS endDate,
+					app.end_half AS endHalf
+				FROM application app
+				LEFT JOIN user on app.user_id = user.id
+			`);
+		} else if (user.level === Level.DepartmentManager) {
+			rows = await query<ApplicationListItem>(`
+				SELECT
+					app.id AS id,
+					user.name AS applicant,
+					app.type AS type,
+					app.start_date AS startDate,
+					app.start_half AS startHalf,
+					app.status AS status,
+					app.end_date AS endDate,
+					app.end_half AS endHalf
+				FROM application app
+				LEFT JOIN user on app.user_id = user.id
+				WHERE user.department = ?
+				AND user.level = 'employee'
+			`, [user.department]);
+		}
+		rows.forEach((value) => {
+      value.duration = calculateDuration(
+        value.startDate,
+        value.startHalf,
+        value.endDate,
+        value.endHalf,
+      );
+    });
+		return rows;
+	}
 
   async approve(openid: string, approveInfo: ApproveDto) {
     const status = approveInfo.approved

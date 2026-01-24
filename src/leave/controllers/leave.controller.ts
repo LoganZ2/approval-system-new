@@ -9,7 +9,7 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { LeaveService } from '../services/leave.service';
-import { Application, PendingApproval } from '../types';
+import { Application, ApplicationListItem, PendingApproval } from '../types';
 import { ApplyLeaveDto } from '../dto/apply-leave.dto';
 import { ApproveDto } from '../dto/approve.dto';
 import { RegisteredGuard } from 'src/common/guards/registered.guard';
@@ -38,6 +38,11 @@ export class LeaveController {
     const result =
       await this.leaveService.selectPendingApprovalByOpenid(openid);
     return result;
+  }
+
+  @Get('/application-list')
+  async applicationList(@Headers('x-wx-openid') openid: string): Promise<ApplicationListItem[]> {
+    return await this.leaveService.applicationList(openid)
   }
 
   @Get('/application-details/:id')

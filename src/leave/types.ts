@@ -127,6 +127,18 @@ export class ApproveInfo {
   comment: string | null;
 }
 
+export class ApplicationListItem {
+  id: number;
+  applicantName: string;
+  type: LeaveType;
+  status: LeaveStatus;
+  startDate: Date;
+  startHalf: DayHalf;
+  endDate: Date;
+  endHalf: DayHalf;
+  duration: number;
+}
+
 export enum Level {
   Employee = 'employee',
   DepartmentManager = 'department_manager',
