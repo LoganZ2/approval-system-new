@@ -39,6 +39,6 @@ export class UserController {
 
   @Get('/department-list')
   departmentList() {
-    return ['出口部', '有色部', '物流部', '综合部'];
+    return ['出口部', '有色部', '物流部', '综合部', '人力部'];
   }
 }
