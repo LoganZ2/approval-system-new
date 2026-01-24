@@ -1,6 +1,15 @@
-import { Type } from "class-transformer";
-import { IsArray, IsBoolean, IsDate, IsEnum, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from "class-validator";
-
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsDate,
+  IsEnum,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
 export enum DayHalf {
   AM = 'am',
@@ -20,12 +29,12 @@ export enum LeaveStatus {
   PENDING = 'pending',
   APPROVED = 'approved',
   REJECTED = 'rejected',
-  CANCELLED = 'cancelled'
+  CANCELLED = 'cancelled',
 }
 
 export enum ApprovalType {
-  And='and',
-  OR='or'
+  And = 'and',
+  OR = 'or',
 }
 
 export class Application {
@@ -40,17 +49,17 @@ export class Application {
   @IsEnum(LeaveStatus)
   @IsOptional()
   status: LeaveStatus;
-	@IsDate()
+  @IsDate()
   @Type(() => Date)
   startDate: Date;
-	@IsEnum(DayHalf)
+  @IsEnum(DayHalf)
   startHalf: DayHalf;
-	@IsDate()
+  @IsDate()
   @Type(() => Date)
   endDate: Date;
-	@IsEnum(DayHalf)
+  @IsEnum(DayHalf)
   endHalf: DayHalf;
-	@IsString()
+  @IsString()
   reason: string;
   @IsNumber()
   @IsOptional()
@@ -58,11 +67,11 @@ export class Application {
   @IsNumber()
   @IsOptional()
   totalSteps: number;
-	@IsDate()
+  @IsDate()
   @Type(() => Date)
   @IsOptional()
   createdAt: Date;
-	@IsDate()
+  @IsDate()
   @Type(() => Date)
   @IsOptional()
   updatedAt: Date;
@@ -83,30 +92,29 @@ export class Approval {
   status: LeaveStatus;
 }
 
-
 export class PendingApproval {
-	@IsNumber()
+  @IsNumber()
   id: number;
   @IsNumber()
   applicationId: number;
-	@IsString()
-  applicant: String;
-	@IsEnum(LeaveType)
+  @IsString()
+  applicant: string;
+  @IsEnum(LeaveType)
   type: LeaveType;
-	@IsString()
+  @IsString()
   reason: string;
-	@IsDate()
+  @IsDate()
   @Type(() => Date)
   startDate: Date;
-	@IsEnum(DayHalf)
+  @IsEnum(DayHalf)
   startHalf: DayHalf;
-	@IsDate()
+  @IsDate()
   @Type(() => Date)
   endDate: Date;
-	@IsEnum(DayHalf)
+  @IsEnum(DayHalf)
   endHalf: DayHalf;
   @IsNumber()
-  duration: Number;
+  duration: number;
 }
 
 export class ApproveInfo {
@@ -120,9 +128,9 @@ export class ApproveInfo {
 }
 
 export enum Level {
-  Employee="employee",
-  DepartmentManager="department_manager",
-  Manager="manager"
+  Employee = 'employee',
+  DepartmentManager = 'department_manager',
+  Manager = 'manager',
 }
 
 export class User {
@@ -139,7 +147,6 @@ export class User {
   @IsOptional()
   openid: string;
 }
-
 
 export class ApprovalSpecResponseDto {
   @IsNumber()

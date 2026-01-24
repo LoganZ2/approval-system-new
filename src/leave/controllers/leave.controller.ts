@@ -4,16 +4,14 @@ import {
   Post,
   Body,
   Param,
-  Query,
-  HttpCode,
-  HttpStatus,
   Headers,
-  UseGuards
+  UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { LeaveService } from '../services/leave.service';
-import { Application, ApproveInfo, LeaveType, PendingApproval } from '../types';
-import axios from 'axios';
-import * as https from "https";
+import { Application, PendingApproval } from '../types';
+import { ApplyLeaveDto } from '../dto/apply-leave.dto';
+import { ApproveDto } from '../dto/approve.dto';
 import { RegisteredGuard } from 'src/common/guards/registered.guard';
 
 // const axiosWx = axios.create({httpsAgent: new https.Agent({
@@ -23,42 +21,49 @@ import { RegisteredGuard } from 'src/common/guards/registered.guard';
 @Controller('leave')
 @UseGuards(RegisteredGuard)
 export class LeaveController {
-  constructor(private readonly leaveService: LeaveService) {
+  constructor(private readonly leaveService: LeaveService) {}
 
-  }
-
-  @Get("/applications")
-  async selectApplicationByUserId(@Headers('x-wx-openid') openid: string): Promise<Application[]> {
+  @Get('/applications')
+  async selectApplicationByUserId(
+    @Headers('x-wx-openid') openid: string,
+  ): Promise<Application[]> {
     const result = await this.leaveService.selectApplicationByOpenid(openid);
     return result;
   }
 
-  @Get("/pending-approvals")
-  async selectPendingApprovalByOpenid(@Headers('x-wx-openid') openid: string): Promise<PendingApproval[]> {
-    const result = await this.leaveService.selectPendingApprovalByOpenid(openid);
+  @Get('/pending-approvals')
+  async selectPendingApprovalByOpenid(
+    @Headers('x-wx-openid') openid: string,
+  ): Promise<PendingApproval[]> {
+    const result =
+      await this.leaveService.selectPendingApprovalByOpenid(openid);
     return result;
   }
 
-  @Get("/application-details/:id")
-  async applicationDetails(@Param("id") id: Number) {
+  @Get('/application-details/:id')
+  async applicationDetails(@Param('id', ParseIntPipe) id: number) {
     return await this.leaveService.applicationDetails(id);
   }
 
-  @Post("/apply")
-  async apply(@Headers('x-wx-openid') openid: string, @Body() application: Application) {
+  @Post('/apply')
+  async apply(
+    @Headers('x-wx-openid') openid: string,
+    @Body() application: ApplyLeaveDto,
+  ) {
     await this.leaveService.apply(openid, application);
   }
 
-  @Post("/approve")
-  async approve(@Headers('x-wx-openid') openid: string, @Body() approveInfo: ApproveInfo) {
+  @Post('/approve')
+  async approve(
+    @Headers('x-wx-openid') openid: string,
+    @Body() approveInfo: ApproveDto,
+  ) {
     await this.leaveService.approve(openid, approveInfo);
   }
 
-
-
   // @Get("/test-send")
   // async testSend(@Headers('x-wx-openid') openid: string) {
-    
+
   //   const result = await axiosWx.get("/cgi-bin/token", {
   //     params: {
   //       grant_type: "client_credential",
