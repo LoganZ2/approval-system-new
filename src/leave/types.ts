@@ -37,6 +37,11 @@ export enum ApprovalType {
   OR = 'or',
 }
 
+export enum UpdateInfoType {
+  Register = 'register',
+  Update = 'update'
+}
+
 export class Application {
   @IsNumber()
   @IsOptional()
@@ -246,4 +251,23 @@ export class ApplicationResponseDto {
   @ValidateNested({ each: true })
   @Type(() => ApprovalResponseDto)
   approvalList: ApprovalResponseDto[];
+}
+
+export class UpdateInfoRequest {
+  id: number;
+  type: UpdateInfoType;
+  userId: number;
+  oldName: string;
+  name: string;
+  oldDepartment: string;
+  department: string;
+  oldLevel: Level;
+  level: Level;
+}
+
+export class UpdateInfoRequestResult {
+  @IsNumber()
+  id: number;
+  @IsBoolean()
+  pass: boolean;
 }
