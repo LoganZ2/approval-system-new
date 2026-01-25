@@ -210,7 +210,7 @@ export class LeaveService {
             [applicationResult.insertId],
           );
         }
-      } else if (user.level === Level.DepartmentManager) {
+      } else if (user.level === Level.DepartmentManager || user.level === Level.Manager) {
         const [applicationResult] = await connection.execute<ResultSetHeader>(
           `INSERT INTO application (user_id, start_date, start_half, end_date, end_half, reason, type, total_steps)
 					VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
