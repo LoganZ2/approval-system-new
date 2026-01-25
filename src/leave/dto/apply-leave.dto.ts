@@ -21,6 +21,5 @@ export class ApplyLeaveDto {
   endHalf: DayHalf;
 
   @IsString()
-  @MinLength(5, { message: 'Reason must be at least 5 characters long' })
   reason: string;
 }

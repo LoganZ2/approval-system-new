@@ -147,7 +147,6 @@ export class LeaveService {
     const [user] = await query<User>('SELECT * FROM user WHERE openid=?', [
       openid,
     ]);
-    console.log(Level.DepartmentManager);
     const approvers = await query<User>(
       'SELECT id FROM user WHERE department=? AND level=?',
       [user.department, Level.DepartmentManager],
@@ -157,7 +156,7 @@ export class LeaveService {
     ]);
 
     return await transaction(async (connection) => {
-      if (user.level === Level.Employee) {
+      if (user.level === Level.Employee && approvers.length > 0) {
         const [applicationResult] = await connection.execute<ResultSetHeader>(
           `INSERT INTO application (user_id, start_date, start_half, end_date, end_half, reason, type, total_steps)
 					VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
@@ -210,7 +209,7 @@ export class LeaveService {
             [applicationResult.insertId],
           );
         }
-      } else if (user.level === Level.DepartmentManager || user.level === Level.Manager) {
+      } else if (user.level === Level.DepartmentManager || user.level === Level.Manager || approvers.length === 0) {
         const [applicationResult] = await connection.execute<ResultSetHeader>(
           `INSERT INTO application (user_id, start_date, start_half, end_date, end_half, reason, type, total_steps)
 					VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
