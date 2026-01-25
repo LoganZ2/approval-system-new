@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { UpdateInfoRequest, UpdateInfoRequestResult, UpdateInfoType, User } from '../types';
+import { Level, UpdateInfoRequest, UpdateInfoRequestResult, UpdateInfoType, User } from '../types';
 import { RegisterUserDto } from '../dto/register-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { query, transaction } from 'src/database';
@@ -49,7 +49,7 @@ export class UserService {
 
   async updateInfoRequests(openid: string) {
     let [slf] = await query<User>("SELECT * FROM user WHERE openid=?", [openid]);
-    if (slf.department !== "人力部") throw new HttpException('用户不为人力部门', HttpStatus.BAD_REQUEST);
+    if (slf.department !== "人力部" && slf.level !== Level.Manager) throw new HttpException('用户无权查看', HttpStatus.BAD_REQUEST);
     let sql = `
       SELECT
         id AS id,
@@ -80,7 +80,7 @@ export class UserService {
   async approveUpdateInfoRequest(openid: string, result: UpdateInfoRequestResult) {
     console.log(result)
     let [slf] = await query<User>("SELECT * FROM user WHERE openid=?", [openid]);
-    if (slf.department !== "人力部") throw new HttpException('用户不为人力部门', HttpStatus.BAD_REQUEST);
+    if (slf.department !== "人力部" && slf.level !== Level.Manager) throw new HttpException('用户无权执行操作', HttpStatus.BAD_REQUEST);
     await transaction(async (connection) => {
       await connection.execute("UPDATE update_info_request SET is_finished=1 WHERE id=?", [result.id])
       let [uir] = (await connection.query("SELECT * FROM update_info_request WHERE id=?", [result.id]))[0] as any[]
