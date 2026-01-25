@@ -28,8 +28,8 @@ export class UserService {
   }
 
   async register(openid: string, user: RegisterUserDto) {
-    let [count] = await query("SELECT COUNT(*) FROM USER");
-    if (count === 0) {
+    let [count] = await query<any>("SELECT COUNT(*) AS count FROM user");
+    if (count.count === 0) {
       await query("INSERT INTO user (name, department, level, openid, is_deleted) VALUES (?, ?, ?, ?, 0)", [user.name, user.department, user.level, openid])
       return
     }
