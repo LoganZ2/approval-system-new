@@ -28,6 +28,11 @@ export class UserService {
   }
 
   async register(openid: string, user: RegisterUserDto) {
+    let [count] = await query("SELECT COUNT(*) FROM USER");
+    if (count === 0) {
+      await query("INSERT INTO user (name, department, level, openid, is_deleted) VALUES (?, ?, ?, ?, 0)", [user.name, user.department, user.level, openid])
+      return
+    }
     await transaction(async (connection) => {
       await connection.execute("DELETE FROM update_info_request WHERE openid=? AND is_finished = 0", [openid])
       const userName = (await connection.query("SELECT name FROM user WHERE name=?", [user.name]))[0] as any[]
