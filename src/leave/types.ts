@@ -151,6 +151,7 @@ export class ApplicationListItem {
 export enum Level {
   Employee = 'employee',
   DepartmentManager = 'department_manager',
+  DeputyManager = 'deputy_manager',
   Manager = 'manager',
 }
 

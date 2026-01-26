@@ -159,8 +159,8 @@ export class LeaveService {
       openid,
     ]);
     const approvers = await query<User>(
-      'SELECT id FROM user WHERE department=? AND level=?',
-      [user.department, Level.DepartmentManager],
+      'SELECT id FROM user WHERE department=? AND level IN (?, ?)',
+      [user.department, Level.DepartmentManager, Level.DeputyManager],
     );
     const managers = await query<User>('SELECT id FROM user WHERE level=?', [
       Level.Manager,
@@ -220,7 +220,7 @@ export class LeaveService {
             [applicationResult.insertId],
           );
         }
-      } else if (user.level === Level.DepartmentManager || user.level === Level.Manager || approvers.length === 0) {
+      } else if (user.level === Level.DepartmentManager || user.level === Level.DeputyManager || user.level === Level.Manager || approvers.length === 0) {
         const [applicationResult] = await connection.execute<ResultSetHeader>(
           `INSERT INTO application (user_id, start_date, start_half, end_date, end_half, reason, type, total_steps)
 					VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
@@ -268,7 +268,7 @@ export class LeaveService {
 				LEFT JOIN user on app.user_id = user.id
 				LEFT JOIN leave_duration_history ldh ON app.user_id = ldh.user_id AND ldh.year = YEAR(NOW())
 			`);
-		} else if (user.level === Level.DepartmentManager) {
+		} else if (user.level === Level.DepartmentManager || user.level === Level.DeputyManager) {
 			rows = await query<ApplicationListItem>(`
 				SELECT
 					app.id AS id,
