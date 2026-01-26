@@ -59,6 +59,7 @@ export class LeaveService {
 					aps.id AS id,
 					app.id AS applicationId,
 					u.name AS applicant,
+					ldh.leave_days AS leaveDays,
 					app.type,
 					app.reason,
 					app.start_date AS startDate,
@@ -70,6 +71,7 @@ export class LeaveService {
 				LEFT JOIN application app ON ap.application_id = app.id
 				LEFT JOIN user u ON app.user_id = u.id
 				LEFT JOIN user approver ON aps.approver_id = approver.id
+				LEFT JOIN leave_duration_history ldh ON app.user_id = ldh.user_id AND ldh.year = YEAR(NOW())
 				WHERE approver.openid = ?
 					AND app.status = 'pending'
 					AND aps.status = 'pending'
@@ -84,6 +86,9 @@ export class LeaveService {
         item.endDate,
         item.endHalf,
       );
+			if (item.leaveDays === null) {
+				item.leaveDays = 0;
+			}
     }
     return rows;
   }
@@ -104,9 +109,11 @@ export class LeaveService {
 				app.current_step AS currentStep,
 				app.total_steps AS totalSteps,
 				app.created_at AS createdAt,
-				app.updated_at AS updatedAt
+				app.updated_at AS updatedAt,
+				ldh.leave_days AS leaveDays
 			FROM application app
 			LEFT JOIN user ON user.id=app.user_id
+			LEFT JOIN leave_duration_history ldh ON app.user_id = ldh.user_id AND ldh.year = YEAR(NOW())
 			WHERE app.id=?
 				AND app.is_deleted=0
 		`,
@@ -140,6 +147,9 @@ export class LeaveService {
       approval.approvalSpecList = approvalSpecList;
     }
     application.approvalList = approvalList;
+		if (application.leaveDays === null) {
+			application.leaveDays = 0;
+		}
     return application;
   }
 
@@ -247,6 +257,7 @@ export class LeaveService {
 					app.id AS id,
 					user.name AS applicant,
 					app.type AS type,
+					ldh.leave_days AS leaveDays,
 					app.start_date AS startDate,
 					app.start_half AS startHalf,
 					app.status AS status,
@@ -254,6 +265,7 @@ export class LeaveService {
 					app.end_half AS endHalf
 				FROM application app
 				LEFT JOIN user on app.user_id = user.id
+				LEFT JOIN leave_duration_history ldh ON app.user_id = ldh.user_id AND ldh.year = YEAR(NOW())
 			`);
 		} else if (user.level === Level.DepartmentManager) {
 			rows = await query<ApplicationListItem>(`
@@ -261,6 +273,7 @@ export class LeaveService {
 					app.id AS id,
 					user.name AS applicant,
 					app.type AS type,
+					ldh.leave_days AS leaveDays,
 					app.start_date AS startDate,
 					app.start_half AS startHalf,
 					app.status AS status,
@@ -268,6 +281,7 @@ export class LeaveService {
 					app.end_half AS endHalf
 				FROM application app
 				LEFT JOIN user on app.user_id = user.id
+				LEFT JOIN leave_duration_history ldh ON app.user_id = ldh.user_id AND ldh.year = YEAR(NOW())
 				WHERE user.department = ?
 				AND user.level = 'employee'
 			`, [user.department]);
@@ -279,6 +293,9 @@ export class LeaveService {
         value.endDate,
         value.endHalf,
       );
+			if (value.leaveDays === null) {
+				value.leaveDays = 0;
+			}
     });
 		return rows;
 	}
@@ -311,6 +328,7 @@ export class LeaveService {
 				app.type AS type,
 				app.status AS status,
 				app.start_date AS startDate,
+				app.user_id AS userId,
 				app.start_half AS startHalf,
 				app.end_date AS endDate,
 				app.end_half AS endHalf,
@@ -386,6 +404,14 @@ export class LeaveService {
           LeaveStatus.APPROVED,
           application.id,
         ]);
+				let duration = calculateDuration(application.startDate, application.startHalf, application.endDate, application.endHalf);
+				let [historyCount] = (await connection.query("SELECT COUNT(*) AS count FROM leave_duration_history WHERE user_id = ? AND year = ?", [application.userId, application.startDate.getFullYear()]))[0] as any[]
+				console.log(historyCount)
+				if (historyCount.count === 0) {
+					await connection.execute("INSERT INTO leave_duration_history (user_id, year, leave_days) VALUES (?, ?, ?)", [application.userId, application.startDate.getFullYear(), duration])
+				} else {
+					await connection.execute("UPDATE leave_duration_history SET leave_days = leave_days + ? WHERE user_id = ? AND year = ?", [duration, application.userId, application.startDate.getFullYear()])
+				}
       } else {
         await connection.execute(
           'UPDATE application SET current_step=current_step+1 WHERE id=?',

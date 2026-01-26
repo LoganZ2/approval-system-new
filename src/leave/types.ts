@@ -49,6 +49,8 @@ export class Application {
   @IsEnum(LeaveType)
   type: LeaveType;
   @IsNumber()
+  userId: number;
+  @IsNumber()
   @IsOptional()
   duration: number;
   @IsEnum(LeaveStatus)
@@ -120,6 +122,7 @@ export class PendingApproval {
   endHalf: DayHalf;
   @IsNumber()
   duration: number;
+  leaveDays: number;
 }
 
 export class ApproveInfo {
@@ -142,6 +145,7 @@ export class ApplicationListItem {
   endDate: Date;
   endHalf: DayHalf;
   duration: number;
+  leaveDays: number;
 }
 
 export enum Level {
@@ -251,6 +255,8 @@ export class ApplicationResponseDto {
   @ValidateNested({ each: true })
   @Type(() => ApprovalResponseDto)
   approvalList: ApprovalResponseDto[];
+
+  leaveDays: number;
 }
 
 export class UpdateInfoRequest {
