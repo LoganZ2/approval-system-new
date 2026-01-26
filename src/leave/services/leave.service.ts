@@ -103,6 +103,7 @@ export class LeaveService {
 				app.start_date AS startDate,
 				app.start_half AS startHalf,
 				app.status AS status,
+				app.type AS type,
 				app.end_date AS endDate,
 				app.end_half AS endHalf,
 				app.reason AS reason,

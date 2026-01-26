@@ -239,6 +239,8 @@ export class ApplicationResponseDto {
   @IsEnum(LeaveStatus)
   status: LeaveStatus;
 
+  type: LeaveType;
+
   @IsNumber()
   currentStep: number;
 
