@@ -39,7 +39,8 @@ export class LeaveService {
 					updated_at as updatedAt 
 			FROM application WHERE user_id=(
 				SELECT id FROM user WHERE openid=?
-			) AND is_deleted=0`,
+			) AND is_deleted=0
+      ORDER BY startDate DESC`,
       [openid],
     );
     rows.forEach((value) => {
@@ -77,6 +78,7 @@ export class LeaveService {
 					AND aps.status = 'pending'
 					AND app.current_step = ap.step
 					AND app.is_deleted = 0
+        ORDER BY startDate DESC
       `;
     const rows: PendingApproval[] = await query<PendingApproval>(sql, [openid]);
     for (const item of rows) {
@@ -267,6 +269,7 @@ export class LeaveService {
 				FROM application app
 				LEFT JOIN user on app.user_id = user.id
 				LEFT JOIN leave_duration_history ldh ON app.user_id = ldh.user_id AND ldh.year = YEAR(NOW())
+        ORDER BY startDate DESC
 			`);
 		} else if (user.level === Level.DepartmentManager || user.level === Level.DeputyManager) {
 			rows = await query<ApplicationListItem>(`
@@ -285,6 +288,7 @@ export class LeaveService {
 				LEFT JOIN leave_duration_history ldh ON app.user_id = ldh.user_id AND ldh.year = YEAR(NOW())
 				WHERE user.department = ?
 				AND user.level = 'employee'
+        ORDER BY startDate DESC
 			`, [user.department]);
 		}
 		rows.forEach((value) => {
