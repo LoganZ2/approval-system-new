@@ -78,7 +78,6 @@ export class LeaveService {
 					AND aps.status = 'pending'
 					AND app.current_step = ap.step
 					AND app.is_deleted = 0
-        ORDER BY startDate DESC
       `;
     const rows: PendingApproval[] = await query<PendingApproval>(sql, [openid]);
     for (const item of rows) {
