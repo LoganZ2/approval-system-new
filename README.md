@@ -112,6 +112,7 @@ npm run lint
 - `GET /leave/application-details/:id` - Get detailed application information
 - `POST /leave/apply` - Submit a new leave application
 - `POST /leave/approve` - Approve or reject a leave application
+- `POST /leave/withdraw` - Withdraw a pending leave application
 
 ### Headers Required
 

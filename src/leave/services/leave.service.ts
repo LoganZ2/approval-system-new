@@ -87,9 +87,9 @@ export class LeaveService {
         item.endDate,
         item.endHalf,
       );
-			if (item.leaveDays === null) {
-				item.leaveDays = 0;
-			}
+      if (item.leaveDays === null) {
+        item.leaveDays = 0;
+      }
     }
     return rows;
   }
@@ -149,9 +149,9 @@ export class LeaveService {
       approval.approvalSpecList = approvalSpecList;
     }
     application.approvalList = approvalList;
-		if (application.leaveDays === null) {
-			application.leaveDays = 0;
-		}
+    if (application.leaveDays === null) {
+      application.leaveDays = 0;
+    }
     return application;
   }
 
@@ -221,7 +221,12 @@ export class LeaveService {
             [applicationResult.insertId],
           );
         }
-      } else if (user.level === Level.DepartmentManager || user.level === Level.DeputyManager || user.level === Level.Manager || approvers.length === 0) {
+      } else if (
+        user.level === Level.DepartmentManager ||
+        user.level === Level.DeputyManager ||
+        user.level === Level.Manager ||
+        approvers.length === 0
+      ) {
         const [applicationResult] = await connection.execute<ResultSetHeader>(
           `INSERT INTO application (user_id, start_date, start_half, end_date, end_half, reason, type, total_steps)
 					VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
@@ -250,11 +255,13 @@ export class LeaveService {
     });
   }
 
-	async applicationList(openid: string) {
-		const [user] = await query<User>("SELECT * FROM user WHERE openid=?", [openid]);
-		let rows: ApplicationListItem[] = []
-		if (user.level === Level.Manager || user.department === "人力部") {
-			rows = await query<ApplicationListItem>(`
+  async applicationList(openid: string) {
+    const [user] = await query<User>('SELECT * FROM user WHERE openid=?', [
+      openid,
+    ]);
+    let rows: ApplicationListItem[] = [];
+    if (user.level === Level.Manager || user.department === '人力部') {
+      rows = await query<ApplicationListItem>(`
 				SELECT
 					app.id AS id,
 					user.name AS applicant,
@@ -270,8 +277,12 @@ export class LeaveService {
 				LEFT JOIN leave_duration_history ldh ON app.user_id = ldh.user_id AND ldh.year = YEAR(NOW())
         ORDER BY startDate DESC
 			`);
-		} else if (user.level === Level.DepartmentManager || user.level === Level.DeputyManager) {
-			rows = await query<ApplicationListItem>(`
+    } else if (
+      user.level === Level.DepartmentManager ||
+      user.level === Level.DeputyManager
+    ) {
+      rows = await query<ApplicationListItem>(
+        `
 				SELECT
 					app.id AS id,
 					user.name AS applicant,
@@ -288,21 +299,23 @@ export class LeaveService {
 				WHERE user.department = ?
 				AND user.level = 'employee'
         ORDER BY startDate DESC
-			`, [user.department]);
-		}
-		rows.forEach((value) => {
+			`,
+        [user.department],
+      );
+    }
+    rows.forEach((value) => {
       value.duration = calculateDuration(
         value.startDate,
         value.startHalf,
         value.endDate,
         value.endHalf,
       );
-			if (value.leaveDays === null) {
-				value.leaveDays = 0;
-			}
+      if (value.leaveDays === null) {
+        value.leaveDays = 0;
+      }
     });
-		return rows;
-	}
+    return rows;
+  }
 
   async approve(openid: string, approveInfo: ApproveDto) {
     const status = approveInfo.approved
@@ -408,14 +421,30 @@ export class LeaveService {
           LeaveStatus.APPROVED,
           application.id,
         ]);
-				let duration = calculateDuration(application.startDate, application.startHalf, application.endDate, application.endHalf);
-				let [historyCount] = (await connection.query("SELECT COUNT(*) AS count FROM leave_duration_history WHERE user_id = ? AND year = ?", [application.userId, application.startDate.getFullYear()]))[0] as any[]
-				console.log(historyCount)
-				if (historyCount.count === 0) {
-					await connection.execute("INSERT INTO leave_duration_history (user_id, year, leave_days) VALUES (?, ?, ?)", [application.userId, application.startDate.getFullYear(), duration])
-				} else {
-					await connection.execute("UPDATE leave_duration_history SET leave_days = leave_days + ? WHERE user_id = ? AND year = ?", [duration, application.userId, application.startDate.getFullYear()])
-				}
+        let duration = calculateDuration(
+          application.startDate,
+          application.startHalf,
+          application.endDate,
+          application.endHalf,
+        );
+        let [historyCount] = (
+          await connection.query(
+            'SELECT COUNT(*) AS count FROM leave_duration_history WHERE user_id = ? AND year = ?',
+            [application.userId, application.startDate.getFullYear()],
+          )
+        )[0] as any[];
+        console.log(historyCount);
+        if (historyCount.count === 0) {
+          await connection.execute(
+            'INSERT INTO leave_duration_history (user_id, year, leave_days) VALUES (?, ?, ?)',
+            [application.userId, application.startDate.getFullYear(), duration],
+          );
+        } else {
+          await connection.execute(
+            'UPDATE leave_duration_history SET leave_days = leave_days + ? WHERE user_id = ? AND year = ?',
+            [duration, application.userId, application.startDate.getFullYear()],
+          );
+        }
       } else {
         await connection.execute(
           'UPDATE application SET current_step=current_step+1 WHERE id=?',
@@ -423,6 +452,44 @@ export class LeaveService {
         );
       }
     });
+  }
+
+  async withdrawApplication(openid: string, applicationId: number) {
+    const [user] = await query<User>('SELECT id FROM user WHERE openid=?', [
+      openid,
+    ]);
+    const [application] = await query<{
+      id: number;
+      userId: number;
+      status: LeaveStatus;
+      isDeleted: number;
+    }>(
+      `
+      SELECT
+        id,
+        user_id AS userId,
+        status,
+        is_deleted AS isDeleted
+      FROM application
+      WHERE id=?
+      `,
+      [applicationId],
+    );
+
+    if (!application || application.isDeleted === 1) {
+      throw new BadRequestException('申请不存在');
+    }
+    if (application.userId !== user.id) {
+      throw new BadRequestException('无权撤回该申请');
+    }
+    if (application.status !== LeaveStatus.PENDING) {
+      throw new BadRequestException('仅可撤回待审批申请');
+    }
+
+    await query(
+      'UPDATE application SET status=?, is_deleted=1, updated_at=NOW() WHERE id=?',
+      [LeaveStatus.CANCELLED, applicationId],
+    );
   }
 }
 

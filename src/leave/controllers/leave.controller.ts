@@ -12,6 +12,7 @@ import { LeaveService } from '../services/leave.service';
 import { Application, ApplicationListItem, PendingApproval } from '../types';
 import { ApplyLeaveDto } from '../dto/apply-leave.dto';
 import { ApproveDto } from '../dto/approve.dto';
+import { WithdrawApplicationDto } from '../dto/withdraw-application.dto';
 import { RegisteredGuard } from 'src/common/guards/registered.guard';
 
 // const axiosWx = axios.create({httpsAgent: new https.Agent({
@@ -41,8 +42,10 @@ export class LeaveController {
   }
 
   @Get('/application-list')
-  async applicationList(@Headers('x-wx-openid') openid: string): Promise<ApplicationListItem[]> {
-    return await this.leaveService.applicationList(openid)
+  async applicationList(
+    @Headers('x-wx-openid') openid: string,
+  ): Promise<ApplicationListItem[]> {
+    return await this.leaveService.applicationList(openid);
   }
 
   @Get('/application-details/:id')
@@ -64,6 +67,17 @@ export class LeaveController {
     @Body() approveInfo: ApproveDto,
   ) {
     await this.leaveService.approve(openid, approveInfo);
+  }
+
+  @Post('/withdraw')
+  async withdrawApplication(
+    @Headers('x-wx-openid') openid: string,
+    @Body() withdrawInfo: WithdrawApplicationDto,
+  ) {
+    await this.leaveService.withdrawApplication(
+      openid,
+      withdrawInfo.applicationId,
+    );
   }
 
   // @Get("/test-send")
