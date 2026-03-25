@@ -275,6 +275,7 @@ export class LeaveService {
 				FROM application app
 				LEFT JOIN user on app.user_id = user.id
 				LEFT JOIN leave_duration_history ldh ON app.user_id = ldh.user_id AND ldh.year = YEAR(NOW())
+				WHERE app.is_deleted = 0
         ORDER BY startDate DESC
 			`);
     } else if (
@@ -298,6 +299,7 @@ export class LeaveService {
 				LEFT JOIN leave_duration_history ldh ON app.user_id = ldh.user_id AND ldh.year = YEAR(NOW())
 				WHERE user.department = ?
 				AND user.level = 'employee'
+				AND app.is_deleted = 0
         ORDER BY startDate DESC
 			`,
         [user.department],
